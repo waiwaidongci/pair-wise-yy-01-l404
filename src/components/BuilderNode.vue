@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import { CopyDocument, Delete } from '@element-plus/icons-vue'
 import type { FieldNode } from '../types/form'
+import { findNode } from '../utils/schema'
 import { useDesignerStore } from '../stores/designer'
 
 const props = defineProps<{
@@ -13,6 +14,11 @@ const props = defineProps<{
 const store = useDesignerStore()
 const selected = computed(() => store.selectedId === props.node.id)
 const isContainer = computed(() => props.node.type === 'group' || props.node.type === 'container')
+/** 联动条件指向的字段已被移除 */
+const conditionInvalid = computed(() => {
+  const fieldId = props.node.condition?.fieldId
+  return fieldId ? !findNode(store.nodes, fieldId) : false
+})
 
 function selectNode() {
   store.selectedId = props.node.id
@@ -75,8 +81,14 @@ function nodeDragStart(event: DragEvent) {
       <div class="node-label">
         {{ node.label }}
         <span v-if="node.validation?.required" class="required-dot">*</span>
-        <el-tag v-if="node.condition?.fieldId" class="condition-tag" size="small" type="warning" effect="light">
-          联动
+        <el-tag
+          v-if="node.condition?.fieldId"
+          class="condition-tag"
+          size="small"
+          :type="conditionInvalid ? 'danger' : 'warning'"
+          effect="light"
+        >
+          {{ conditionInvalid ? '联动失效' : '联动' }}
         </el-tag>
       </div>
 

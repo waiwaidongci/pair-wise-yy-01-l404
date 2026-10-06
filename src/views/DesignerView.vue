@@ -27,6 +27,10 @@ async function showExport() {
 }
 
 function applyImport() {
+  if (store.draftLocked) {
+    ElMessage.error('草稿升级失败、保存已暂停，请先处理本机草稿升级')
+    return
+  }
   try {
     const parsed = JSON.parse(importText.value) as FormSchema
     if (!parsed.title || !Array.isArray(parsed.nodes)) throw new Error('Schema 缺少 title 或 nodes')

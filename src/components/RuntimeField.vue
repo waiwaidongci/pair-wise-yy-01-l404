@@ -1,11 +1,13 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed } from 'vue'
 import { Delete, Plus } from '@element-plus/icons-vue'
 import type { FieldNode, RuntimeValueMap } from '../types/form'
 import { evaluateCondition, validateValue } from '../utils/schema'
 
 const props = defineProps<{
   node: FieldNode
+  /** 字段 id → 字段标识 */
+  fieldNames: Record<string, string>
   values: RuntimeValueMap
   errors: Record<string, string>
 }>()
@@ -15,7 +17,8 @@ const emit = defineEmits<{
   error: [fieldName: string, error: string]
 }>()
 
-const visible = computed(() => evaluateCondition(props.node.condition, props.values))
+const visible = computed(() => evaluateCondition(props.node.condition, props.fieldNames, props.values))
+const invalid = computed(() => (props.node.condition?.fieldId ? !props.fieldNames[props.node.condition.fieldId] : false))
 const isContainer = computed(() => props.node.type === 'group' || props.node.type === 'container')
 const tableRows = computed(() => {
   const value = props.values[props.node.name]
@@ -46,11 +49,15 @@ function removeTableRow(rowIndex: number) {
 <template>
   <template v-if="visible">
     <div v-if="isContainer" class="runtime-container">
-      <div class="runtime-label">{{ node.label }}</div>
+      <div class="runtime-label">
+        {{ node.label }}
+        <el-tag v-if="invalid" size="small" type="danger" effect="light">联动字段已删除</el-tag>
+      </div>
       <RuntimeField
         v-for="child in node.children"
         :key="child.id"
         :node="child"
+        :field-names="fieldNames"
         :values="values"
         :errors="errors"
         @update="(name, value) => emit('update', name, value)"
@@ -61,6 +68,7 @@ function removeTableRow(rowIndex: number) {
       <div class="runtime-label">
         {{ node.label }}
         <span v-if="node.validation?.required" class="required-dot">*</span>
+        <el-tag v-if="invalid" size="small" type="danger" effect="light">联动字段已删除</el-tag>
       </div>
       <el-input
         v-if="node.type === 'input'"
@@ -100,9 +108,7 @@ function removeTableRow(rowIndex: number) {
             />
           </div>
           <div class="runtime-table-cell" style="max-width: 70px">
-            <el-button link type="danger" @click="removeTableRow(rowIndex)">
-              <el-icon><Delete /></el-icon>
-            </el-button>
+            <el-button link type="danger" @click="removeTableRow(rowIndex)" />
           </div>
         </div>
         <div style="padding: 8px">

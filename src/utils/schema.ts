@@ -97,9 +97,19 @@ export function moveNode(nodes: FieldNode[], sourceId: string, targetParentId?: 
   insertNode(nodes, cloned, targetParentId, targetIndex)
 }
 
-export function evaluateCondition(condition: VisibilityCondition | undefined, values: RuntimeValueMap): boolean {
+/**
+ * 联动条件按字段 id 定位目标字段，再按字段标识 name 读取运行时值。
+ * 目标字段已被移除时条件失效（返回 true 以展示字段，并由调用方标记无效引用）。
+ */
+export function evaluateCondition(
+  condition: VisibilityCondition | undefined,
+  fieldNames: Record<string, string>,
+  values: RuntimeValueMap,
+): boolean {
   if (!condition?.fieldId) return true
-  const current = values[condition.fieldId]
+  const name = fieldNames[condition.fieldId]
+  if (!name) return true
+  const current = values[name]
   const compare = condition.value
   switch (condition.operator) {
     case 'equals': return String(current ?? '') === String(compare)
@@ -109,6 +119,19 @@ export function evaluateCondition(condition: VisibilityCondition | undefined, va
     case 'lessThan': return Number(current) < Number(compare)
     default: return true
   }
+}
+
+/** 找出所有联动条件指向已移除字段的节点 id */
+export function findInvalidConditionIds(nodes: FieldNode[]): string[] {
+  const ids: string[] = []
+  const walk = (list: FieldNode[]) => {
+    for (const node of list) {
+      if (node.condition?.fieldId && !findNode(nodes, node.condition.fieldId)) ids.push(node.id)
+      walk(node.children ?? [])
+    }
+  }
+  walk(nodes)
+  return ids
 }
 
 export function validateValue(value: unknown, rule?: ValidationRule): string | null {

@@ -8,6 +8,12 @@ const node = computed(() => store.selectedNode)
 const optionText = ref('')
 const columnText = ref('')
 
+/** 联动条件指向的字段已被移除 */
+const conditionInvalid = computed(() => {
+  const fieldId = node.value?.condition?.fieldId
+  return fieldId ? !store.flatFields.some((field) => field.id === fieldId) : false
+})
+
 watch(node, (value) => {
   optionText.value = value?.options?.join('\n') ?? ''
   columnText.value = value?.columns?.map((item) => `${item.key}:${item.label}`).join('\n') ?? ''
@@ -118,6 +124,7 @@ function setConditionField(fieldId: string) {
             <el-select :model-value="node.condition?.fieldId" clearable style="width: 100%" @change="setConditionField">
               <el-option v-for="field in store.flatFields" :key="field.id" :label="field.label" :value="field.id" />
             </el-select>
+            <div v-if="conditionInvalid" class="condition-invalid">引用的字段已被删除，请重新选择目标字段</div>
           </el-form-item>
           <template v-if="node.condition?.fieldId">
             <el-form-item class="form-item-compact" label="判断方式">

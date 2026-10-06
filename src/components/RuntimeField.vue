@@ -8,6 +8,7 @@ const props = defineProps<{
   node: FieldNode
   values: RuntimeValueMap
   errors: Record<string, string>
+  validNames: Set<string>
 }>()
 
 const emit = defineEmits<{
@@ -17,6 +18,9 @@ const emit = defineEmits<{
 
 const visible = computed(() => evaluateCondition(props.node.condition, props.values))
 const isContainer = computed(() => props.node.type === 'group' || props.node.type === 'container')
+const conditionInvalid = computed(() =>
+  !!props.node.condition?.fieldName && !props.validNames.has(props.node.condition.fieldName),
+)
 const tableRows = computed(() => {
   const value = props.values[props.node.name]
   return Array.isArray(value) ? value as Array<Record<string, unknown>> : []
@@ -46,6 +50,14 @@ function removeTableRow(rowIndex: number) {
 <template>
   <template v-if="visible">
     <div v-if="isContainer" class="runtime-container">
+      <el-alert
+        v-if="conditionInvalid"
+        class="invalid-condition-alert"
+        type="error"
+        :closable="false"
+        show-icon
+        :title="`联动引用无效：标识「${node.condition?.fieldName}」的字段已移除或改名，条件已失效`"
+      />
       <div class="runtime-label">{{ node.label }}</div>
       <RuntimeField
         v-for="child in node.children"
@@ -53,6 +65,7 @@ function removeTableRow(rowIndex: number) {
         :node="child"
         :values="values"
         :errors="errors"
+        :valid-names="validNames"
         @update="(name, value) => emit('update', name, value)"
         @error="(name, error) => emit('error', name, error)"
       />
@@ -62,6 +75,14 @@ function removeTableRow(rowIndex: number) {
         {{ node.label }}
         <span v-if="node.validation?.required" class="required-dot">*</span>
       </div>
+      <el-alert
+        v-if="conditionInvalid"
+        class="invalid-condition-alert"
+        type="error"
+        :closable="false"
+        show-icon
+        :title="`联动引用无效：标识「${node.condition?.fieldName}」的字段已移除或改名，条件已失效，该字段当前按始终显示处理`"
+      />
       <el-input
         v-if="node.type === 'input'"
         :model-value="values[node.name] as string"

@@ -75,9 +75,18 @@ function nodeDragStart(event: DragEvent) {
       <div class="node-label">
         {{ node.label }}
         <span v-if="node.validation?.required" class="required-dot">*</span>
-        <el-tag v-if="node.condition?.fieldId" class="condition-tag" size="small" type="warning" effect="light">
+        <el-tag v-if="node.condition?.fieldName && store.fieldNames.has(node.condition.fieldName)" class="condition-tag" size="small" type="warning" effect="light">
           联动
         </el-tag>
+        <el-tooltip
+          v-if="node.condition?.fieldName && !store.fieldNames.has(node.condition.fieldName)"
+          :content="`联动引用无效：标识「${node.condition.fieldName}」的字段已移除或改名，条件已失效`"
+          placement="top"
+        >
+          <el-tag class="condition-tag" size="small" type="danger" effect="dark">
+            引用无效
+          </el-tag>
+        </el-tooltip>
       </div>
 
       <el-input v-if="node.type === 'input'" :placeholder="node.placeholder" disabled />

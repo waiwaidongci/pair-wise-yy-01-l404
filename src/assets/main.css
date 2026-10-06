@@ -145,3 +145,5 @@ body { overflow: hidden; }
 .runtime-table-cell:last-child { border-right: 0; }
 .runtime-table-row.head .runtime-table-cell { background: #f5f7fa; color: #4e5d72; font-weight: 700; }
 .summary-box { margin-top: 22px; padding: 14px; border-radius: 7px; background: #f5f8fc; color: #526176; font-size: 12px; }
+
+.invalid-condition-alert { margin: 6px 0 10px; }

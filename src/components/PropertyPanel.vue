@@ -38,9 +38,13 @@ function clearCondition() {
   store.updateSelected({ condition: undefined })
 }
 
-function setConditionField(fieldId: string) {
-  const condition: VisibilityCondition = { fieldId, operator: node.value?.condition?.operator ?? 'equals', value: node.value?.condition?.value ?? '' }
+function setConditionField(fieldName: string) {
+  const condition: VisibilityCondition = { fieldName, operator: node.value?.condition?.operator ?? 'equals', value: node.value?.condition?.value ?? '' }
   patch({ condition })
+}
+
+function conditionInvalid(fieldName?: string): boolean {
+  return !!fieldName && !store.fieldNames.has(fieldName)
 }
 </script>
 
@@ -114,12 +118,25 @@ function setConditionField(fieldId: string) {
       <section class="property-group">
         <h4>联动条件</h4>
         <el-form label-position="top" size="small">
-          <el-form-item class="form-item-compact" label="当字段">
-            <el-select :model-value="node.condition?.fieldId" clearable style="width: 100%" @change="setConditionField">
-              <el-option v-for="field in store.flatFields" :key="field.id" :label="field.label" :value="field.id" />
+          <el-form-item class="form-item-compact" label="当字段标识">
+            <el-select :model-value="node.condition?.fieldName" clearable style="width: 100%" @change="setConditionField">
+              <el-option
+                v-for="field in store.flatFields"
+                :key="field.id"
+                :label="`${field.label}（${field.name}）`"
+                :value="field.name"
+              />
             </el-select>
           </el-form-item>
-          <template v-if="node.condition?.fieldId">
+          <el-alert
+            v-if="conditionInvalid(node.condition?.fieldName)"
+            type="error"
+            :closable="false"
+            show-icon
+            style="margin-bottom: 8px"
+            :title="`引用无效：标识「${node.condition?.fieldName}」对应的字段已移除或改名，条件已失效，请重新选择`"
+          />
+          <template v-if="node.condition?.fieldName">
             <el-form-item class="form-item-compact" label="判断方式">
               <el-select :model-value="node.condition.operator" style="width: 100%" @change="store.updateCondition({ operator: $event as VisibilityCondition['operator'] })">
                 <el-option label="等于" value="equals" />

@@ -98,8 +98,10 @@ export function moveNode(nodes: FieldNode[], sourceId: string, targetParentId?: 
 }
 
 export function evaluateCondition(condition: VisibilityCondition | undefined, values: RuntimeValueMap): boolean {
-  if (!condition?.fieldId) return true
-  const current = values[condition.fieldId]
+  if (!condition?.fieldName) return true
+  // 标识改动或字段移除后，values 中已不存在该标识键，联动条件失效：不再照旧判断
+  if (!(condition.fieldName in values)) return true
+  const current = values[condition.fieldName]
   const compare = condition.value
   switch (condition.operator) {
     case 'equals': return String(current ?? '') === String(compare)
@@ -109,6 +111,23 @@ export function evaluateCondition(condition: VisibilityCondition | undefined, va
     case 'lessThan': return Number(current) < Number(compare)
     default: return true
   }
+}
+
+/** 收集画布上当前存在的全部字段标识（name），用于判定联动引用是否有效 */
+export function collectFieldNames(nodes: FieldNode[]): Set<string> {
+  const names = new Set<string>()
+  const walk = (items: FieldNode[]) => items.forEach((node) => {
+    names.add(node.name)
+    walk(node.children ?? [])
+  })
+  walk(nodes)
+  return names
+}
+
+/** 条件指向已移除字段 / 已改名标识时返回 false，供预览与属性面板标记“引用无效” */
+export function isConditionValid(condition: VisibilityCondition | undefined, names: Set<string>): boolean {
+  if (!condition?.fieldName) return true
+  return names.has(condition.fieldName)
 }
 
 export function validateValue(value: unknown, rule?: ValidationRule): string | null {
@@ -148,7 +167,7 @@ export function createStarterSchema() {
   amount.name = 'amount'
   amount.placeholder = '请输入金额'
   amount.validation = { required: true, pattern: '^\\d+(\\.\\d{1,2})?$', message: '请输入合法金额，最多两位小数' }
-  amount.condition = { fieldId: type.id, operator: 'notEquals', value: '其他' }
+  amount.condition = { fieldName: type.name, operator: 'notEquals', value: '其他' }
 
   const date = createField('date')
   date.label = '期望日期'
@@ -168,7 +187,7 @@ export function createStarterSchema() {
   const table = createField('table')
   table.label = '费用明细'
   table.name = 'expenses'
-  table.condition = { fieldId: type.id, operator: 'equals', value: '差旅报销' }
+  table.condition = { fieldName: type.name, operator: 'equals', value: '差旅报销' }
 
   return {
     version: 1 as const,
